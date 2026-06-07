@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemas Snap - Photo Box</title>
+    <!-- Tailwind CSS untuk styling cepat -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-zinc-900 text-white flex flex-col items-center justify-between min-h-screen p-4 font-sans">
+
+    <!-- Header -->
+    <header class="text-center my-2">
+        <h1 class="text-2xl font-bold tracking-wider text-pink-500">📸 GEMAS SNAP</h1>
+        <p class="text-xs text-zinc-400">Pilih template, bergaya, dan unduh!</p>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="relative w-full max-w-md bg-zinc-850 rounded-3xl overflow-hidden shadow-2xl border border-zinc-800 flex flex-col items-center justify-center aspect-[3/4] p-4">
+        <!-- Video Stream (Kamera) -->
+        <video id="video" autoplay playsinline class="w-full h-full object-cover rounded-2xl bg-black"></video>
+        
+        <!-- Countdown Overlay -->
+        <div id="countdown" class="absolute inset-0 flex items-center justify-center text-8xl font-black text-pink-500 hidden drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] animate-ping">3</div>
+        
+        <!-- Canvas Tersembunyi -->
+        <canvas id="canvas" class="hidden"></canvas>
+    </main>
+
+    <!-- Hasil Foto / Strip -->
+    <div id="result-container" class="hidden my-4 flex flex-col items-center">
+        <h3 class="text-sm mb-2 text-zinc-400">Hasil Foto Kamu:</h3>
+        <img id="photo-result" class="max-w-xs rounded-lg border-4 border-white shadow-lg" src="" alt="Hasil Photo Box">
+    </div>
+
+    <!-- Controls / Pilihan & Tombol Action -->
+    <footer class="w-full max-w-md mb-6 flex flex-col gap-4 px-4">
+        
+        <!-- Pemilih Template Grid -->
+        <div id="template-selector" class="text-center">
+            <p class="text-xs text-zinc-400 mb-2 font-semibold">PILIH JUMLAH FOTO:</p>
+            <div class="grid grid-cols-4 gap-2">
+                <button data-photos="3" class="template-btn bg-pink-500 text-white font-bold py-2 px-3 rounded-xl border-2 border-pink-400 shadow-md transform active:scale-95 transition text-sm">
+                    🎀 3 Foto<br><span class="text-[10px] font-normal">Strip</span>
+                </button>
+                <button data-photos="4" class="template-btn bg-zinc-800 text-zinc-400 font-bold py-2 px-3 rounded-xl border-2 border-zinc-700 shadow-md transform active:scale-95 transition text-sm">
+                    🧸 4 Foto<br><span class="text-[10px] font-normal">Classic</span>
+                </button>
+                <button data-photos="5" class="template-btn bg-zinc-800 text-zinc-400 font-bold py-2 px-3 rounded-xl border-2 border-zinc-700 shadow-md transform active:scale-95 transition text-sm">
+                    🔮 5 Foto<br><span class="text-[10px] font-normal">Tall</span>
+                </button>
+                <button data-photos="6" class="template-btn bg-zinc-800 text-zinc-400 font-bold py-2 px-3 rounded-xl border-2 border-zinc-700 shadow-md transform active:scale-95 transition text-sm">
+                    🌈 6 Foto<br><span class="text-[10px] font-normal">2x3 Grid</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tombol Eksekusi -->
+        <div class="flex flex-col gap-2">
+            <button id="snap-btn" class="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-750 text-white font-bold py-4 rounded-full shadow-lg transform active:scale-95 transition text-lg tracking-wide">
+                MULAI SNAP (3 FOTO)
+            </button>
+            <button id="download-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-full shadow-md hidden text-md">
+                Unduh Hasil Foto 📥
+            </button>
+        </div>
+    </footer>
+
+</body>
+</html>
