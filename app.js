@@ -5,61 +5,32 @@ const downloadBtn = document.getElementById('download-btn');
 const countdownEl = document.getElementById('countdown');
 const photoResult = document.getElementById('photo-result');
 const resultContainer = document.getElementById('result-container');
-const templateBtns = document.querySelectorAll('.template-btn');
 
 const ctx = canvas.getContext('2d');
 let takenPhotos = [];
-let maxPhotos = 3; // Default awal 3 foto
+const maxPhotos = 4;
 
-// 1. Logika Pilihan Template
-templateBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        templateBtns.forEach(b => {
-            b.classList.remove('bg-pink-500', 'text-white', 'border-pink-400');
-            b.classList.add('bg-zinc-800', 'text-zinc-400', 'border-zinc-700');
-        });
-        btn.classList.remove('bg-zinc-800', 'text-zinc-400', 'border-zinc-700');
-        btn.classList.add('bg-pink-500', 'text-white', 'border-pink-400');
-        
-        maxPhotos = parseInt(btn.getAttribute('data-photos'));
-        snapBtn.innerText = `MULAI SNAP (${maxPhotos} FOTO)`;
-    });
-});
-
-// 2. FUNGSI KAMERA BARU (Lebih Stabil untuk HP)
+// 1. Akses Kamera HP (Mengutamakan kamera depan/user)
 async function initCamera() {
-    // Memastikan browser mendukung fitur kamera
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("Browser kamu tidak mendukung akses kamera. Coba gunakan Chrome atau Safari versi terbaru.");
-        return;
-    }
-
-    const constraints = {
-        video: {
-            facingMode: "user", // Mengunci ke kamera depan HP
-            width: { ideal: 640 }, // Diturunkan sedikit agar loading kamera di HP lebih ringan & cepat
-            height: { ideal: 480 }
-        },
-        audio: false
-    };
-
     try {
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { 
+                facingMode: "user", // "environment" jika ingin kamera belakang
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            },
+            audio: false
+        });
         video.srcObject = stream;
-        
-        // Memaksa video untuk play setelah stream didapatkan (mengatasi bug layar hitam)
-        video.onloadedmetadata = () => {
-            video.play().catch(e => console.error("Gagal auto-play video:", e));
-        };
     } catch (err) {
-        console.error("Error akses kamera: ", err);
-        alert("Gagal memuat kamera. Pastikan tidak ada aplikasi lain (seperti WhatsApp/Instagram) yang sedang memakai kamera belakang/depan kamu.");
+        alert("Gagal mengakses kamera. Mohon izinkan akses kamera di browser HP kamu!");
+        console.error(err);
     }
 }
 
-// 3. Trigger Sesi Foto
+// 2. Event Listener Tombol Ambil Foto
 snapBtn.addEventListener('click', () => {
-    takenPhotos = []; 
+    takenPhotos = []; // Reset foto sebelumnya
     resultContainer.classList.add('hidden');
     downloadBtn.classList.add('hidden');
     snapBtn.disabled = true;
@@ -68,16 +39,17 @@ snapBtn.addEventListener('click', () => {
     startPhotoSession(0);
 });
 
-// 4. Loop Hitung Mundur per Foto
+// 3. Loop Sesi Foto dengan Jeda Waktu (Countdown)
 function startPhotoSession(currentCount) {
     if (currentCount >= maxPhotos) {
+        // Jika sudah 4 foto, gabungkan jadi satu strip
         generatePhotoStrip();
         snapBtn.disabled = false;
-        snapBtn.innerText = `MULAI SNAP (${maxPhotos} FOTO)`;
+        snapBtn.innerText = "AMBIL FOTO LAGI";
         return;
     }
 
-    let timeLeft = 3;
+    let timeLeft = 3; // 3 detik countdown
     countdownEl.classList.remove('hidden');
     countdownEl.innerText = timeLeft;
 
@@ -86,100 +58,88 @@ function startPhotoSession(currentCount) {
         if (timeLeft <= 0) {
             clearInterval(timer);
             countdownEl.classList.add('hidden');
+            
+            // Ambil gambar dari video stream
             captureImage();
             
+            // Lanjut ke foto berikutnya setelah jeda 1.5 detik biar ada waktu ganti gaya
             setTimeout(() => {
                 startPhotoSession(currentCount + 1);
-            }, 1200);
+            }, 1500);
         } else {
             countdownEl.innerText = timeLeft;
         }
     }, 1000);
 }
 
-// 5. Ambil Gambar dari Kamera
+// 4. Capture Gambar dari Video ke Canvas Sementara
 function captureImage() {
+    // Set ukuran canvas sementara sesuai rasio video
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = video.videoWidth || 640;
-    tempCanvas.height = video.videoHeight || 480;
+    tempCanvas.width = video.videoWidth;
+    tempCanvas.height = video.videoHeight;
     const tempCtx = tempCanvas.getContext('2d');
     
+    // Gambar efek mirror
     tempCtx.translate(tempCanvas.width, 0);
     tempCtx.scale(-1, 1);
     tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
     
+    // Simpan data URL gambar
     takenPhotos.push(tempCanvas.toDataURL('image/jpeg'));
 }
 
-// 6. Generate Template Sesuai Pilihan
+// 5. Menggabungkan 4 Foto menjadi Strip Photo Box Estetis
 function generatePhotoStrip() {
+    // Tentukan ukuran strip akhir (misal: lebar 400px, tinggi otomatis menyesuaikan)
+    const stripWidth = 400;
     const padding = 20;
-    let stripWidth = 400;
-    let photoHeight = 270;
-    let totalHeight = 0;
-
-    if (maxPhotos === 6) {
-        stripWidth = 540; 
-        photoHeight = 240;
-        totalHeight = (photoHeight * 3) + (padding * 4) + 60; 
-    } else {
-        totalHeight = (photoHeight * maxPhotos) + (padding * (maxPhotos + 1)) + 60;
-    }
+    const photoHeight = 280; // Tinggi tiap frame foto
+    const totalHeight = (photoHeight * maxPhotos) + (padding * (maxPhotos + 1)) + 60; // 60px tambahan untuk space logo/footer strip
 
     canvas.width = stripWidth;
     canvas.height = totalHeight;
 
-    ctx.fillStyle = '#FFE4E6'; 
+    // Background Frame (Warna putih ala photobox klasik, bisa diganti)
+    ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, stripWidth, totalHeight);
 
-    let loadedCount = 0;
+    let currentY = padding;
 
+    // Gambar satu per satu foto ke dalam canvas utama
     takenPhotos.forEach((photoSrc, index) => {
         const img = new Image();
         img.src = photoSrc;
         img.onload = () => {
-            loadedCount++;
+            // Gambar foto dengan margin kiri-kanan
+            ctx.drawImage(img, padding, currentY, stripWidth - (padding * 2), photoHeight);
+            currentY += photoHeight + padding;
 
-            if (maxPhotos === 6) {
-                const col = index % 2; 
-                const row = Math.floor(index / 2); 
-                const singlePhotoWidth = (stripWidth - (padding * 3)) / 2;
-                
-                const x = padding + col * (singlePhotoWidth + padding);
-                const y = padding + row * (photoHeight + padding);
-                
-                ctx.drawImage(img, x, y, singlePhotoWidth, photoHeight);
-            } else {
-                const x = padding;
-                const y = padding + index * (photoHeight + padding);
-                const singlePhotoWidth = stripWidth - (padding * 2);
-                
-                ctx.drawImage(img, x, y, singlePhotoWidth, photoHeight);
-            }
-
-            if (loadedCount === maxPhotos) {
-                ctx.fillStyle = '#DB2777'; 
-                ctx.font = 'bold 18px sans-serif';
+            // Jika ini foto terakhir, render hasil akhirnya
+            if (index === maxPhotos - 1) {
+                // Tambah teks pemanis di bawah strip
+                ctx.fillStyle = '#111111';
+                ctx.font = 'bold 16px sans-serif';
                 ctx.textAlign = 'center';
                 ctx.fillText('✨ GEMAS SNAP 2026 ✨', stripWidth / 2, totalHeight - 25);
 
+                // Tampilkan ke user
                 const finalDataUrl = canvas.toDataURL('image/png');
                 photoResult.src = finalDataUrl;
                 resultContainer.classList.remove('hidden');
                 downloadBtn.classList.remove('hidden');
                 
+                // Setup tombol download
                 downloadBtn.onclick = () => {
                     const link = document.createElement('a');
-                    link.download = `gemas-snap-${maxPhotos}grid-${Date.now()}.png`;
+                    link.download = `gemas-snap-${Date.now()}.png`;
                     link.href = finalDataUrl;
                     link.click();
                 };
-
-                resultContainer.scrollIntoView({ behavior: 'smooth' });
             }
         };
     });
 }
 
-// Nyalakan Kamera otomatis saat halaman siap
-window.addEventListener('load', initCamera);
+// Jalankan kamera saat halaman dimuat
+window.addEventListener('DOMContentLoaded', initCamera);
